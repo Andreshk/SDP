@@ -25,7 +25,7 @@ class Tree
 		freeNode(ptr->right);
 		delete ptr;
 	}
-	bool isValidPath(position_t) { return true; }
+	bool isValidPath(position_t) { return true; } // to-do later
 	Node** navigate(position_t); // само декларация
 public:
 	Tree() : root(nullptr), size(0) {}
@@ -59,6 +59,7 @@ public:
 		{
 			freeNode(*toRemove);
 			*toRemove = nullptr;
+			// ами size??
 		}
 	}
 
