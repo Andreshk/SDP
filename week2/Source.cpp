@@ -13,6 +13,7 @@ public:
 	void doStuff() const
 	{
 		Point zero = getZero();
+		// Point zero = Point::getZero();
 		std::cout << "stuff\n";
 	}
 };
