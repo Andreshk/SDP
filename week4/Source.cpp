@@ -31,7 +31,6 @@ class Tree
 	Node** navigate(position_t); // само декларация
 	std::string calculatePosition() const
 	{
-		size_t idx = size + 1;
 		std::string result;
 		for (size_t idx = size + 1; idx != 1; idx >>= 1)
 		{
