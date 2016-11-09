@@ -1,5 +1,7 @@
 #pragma once
 #include<vector>
+#include<cstddef>
+#include<algorithm>
 
 // приемаме "начина" за сравнение като втори темплейтен аргумент.
 // Всеки обект Heap ще съдържа обект от този тип, който ще извиква
@@ -79,7 +81,7 @@ void Heap<T, Comparator>::bubbleDown(size_t idx)
 		(right >= data.size() || !cmp(data[right], data[idx])))
 		return;
 
-	if (right >= data.size() || cmp(data[left], data[right]))
+	if (right >= data.size() || cmp(data[left], data[idx]))
 	{
 		std::swap(data[idx], data[left]);
 		bubbleDown(left);
@@ -153,8 +155,8 @@ bool Heap<T, Comparator>::validate() const
 	{
 		size_t left = getLeftChild(idx);
 		size_t right = getRightChild(idx);
-		if ((left < data.size() && cmp(data[left],data[right])) ||
-			(right < data.size() && cmp(data[left],data[right])))
+		if ((left < data.size() && cmp(data[left],data[idx])) ||
+			(right < data.size() && cmp(data[right],data[idx])))
 			return false;
 	}
 	return true;
