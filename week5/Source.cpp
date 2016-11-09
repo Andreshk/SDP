@@ -1,6 +1,6 @@
 #include"Heap.h"
 #include<iostream>
-#include<functional>
+
 
 // сравнение по последна цифра
 bool compareLastDigit(int a, int b)
