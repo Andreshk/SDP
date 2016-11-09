@@ -1,7 +1,7 @@
 #pragma once
 #include<vector>
 #include<cstddef>
-#include<algorithm>
+#include<functional>
 
 // приемаме "начина" за сравнение като втори темплейтен аргумент.
 // Всеки обект Heap ще съдържа обект от този тип, който ще извиква
@@ -81,7 +81,7 @@ void Heap<T, Comparator>::bubbleDown(size_t idx)
 		(right >= data.size() || !cmp(data[right], data[idx])))
 		return;
 
-	if (right >= data.size() || cmp(data[left], data[idx]))
+	if (right >= data.size() || cmp(data[left], data[right]))
 	{
 		std::swap(data[idx], data[left]);
 		bubbleDown(left);
