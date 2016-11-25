@@ -18,7 +18,7 @@ class PairingHeap
     size_t count;
 
     // помощни функции за копиране/изтриване
-    static Node* copyNode(const Node*);
+    static Node* copyNode(const Node*, Node*);
     static void freeNode(const Node*);
     void copyFrom(const PairingHeap&);
 
@@ -99,13 +99,14 @@ PairingHeap<T>::iterator::operator bool() const
 }
 
 template<class T>
-auto PairingHeap<T>::copyNode(const Node* ptr) -> Node*
+auto PairingHeap<T>::copyNode(const Node* ptr, Node* _pred) -> Node*
 {
     if (!ptr)
         return nullptr;
     Node* tmp = new Node(ptr->value);
-    tmp->leftChild = copyNode(ptr->leftChild);
-    tmp->rightSibling = copyNode(ptr->rightSibling);
+    tmp->leftChild = copyNode(ptr->leftChild, tmp);
+    tmp->rightSibling = copyNode(ptr->rightSibling, tmp);
+    tmp->predecessor = _pred;
     return tmp;
 }
 
@@ -123,7 +124,7 @@ void PairingHeap<T>::freeNode(const Node* ptr)
 template<class T>
 void PairingHeap<T>::copyFrom(const PairingHeap& other)
 {
-    root = copyNode(other.root);
+    root = copyNode(other.root, nullptr);
     count = other.count;
 }
 
