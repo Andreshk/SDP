@@ -31,7 +31,7 @@ public:
     {
         friend class PairingHeap<T>;
         Node* ptr;
-        iterator(Node*);
+        explicit iterator(Node*);
     public:
         const T& operator*() const;
         const T* operator->() const;
