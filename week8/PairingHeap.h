@@ -30,5 +30,5 @@ public:
     const T& peek() const;
 
     // тук става интересно (!)
-    void extractMin();
+    T extractMin();
 };
