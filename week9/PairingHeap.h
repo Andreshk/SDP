@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <cstddef>   // size_t
+#include <algorithm> // std::swap
 
 template<class T>
 class PairingHeap
@@ -27,17 +29,17 @@ class PairingHeap
     // Използва се и за конструиране на пирамида с един възел (по дадена стойност)
     explicit PairingHeap(Node*, size_t = 0);
 public:
-    class iterator
+    class proxy
     {
         friend class PairingHeap<T>;
         Node* ptr;
-        explicit iterator(Node*);
+        explicit proxy(Node*);
     public:
         const T& operator*() const;
         const T* operator->() const;
         operator bool() const;
-        friend bool operator==(const iterator& lhs, const iterator& rhs) { return lhs.ptr == rhs.ptr; }
-        friend bool operator!=(const iterator& lhs, const iterator& rhs) { return !(lhs == rhs); }
+        friend bool operator==(const proxy& lhs, const proxy& rhs) { return lhs.ptr == rhs.ptr; }
+        friend bool operator!=(const proxy& lhs, const proxy& rhs) { return !(lhs == rhs); }
     };
 
     // стандартна голяма четворка
@@ -51,7 +53,7 @@ public:
     void merge(PairingHeap&);
 
     // вмъкване - създаваме нова пирамида с една стойност и сливаме с дадената
-    iterator insert(const T&);
+    proxy insert(const T&);
 
     // класическа операция; взимаме стойността в корена (ако няма такъв - undefined behaviour)
     const T& peek() const;
@@ -61,7 +63,7 @@ public:
     T extractMin();
 
     // специално (!)
-    iterator decreaseKey(iterator, const T&);
+    proxy decreaseKey(proxy, const T&);
 
     // отново стандартни методи
     size_t size() const;
@@ -78,22 +80,22 @@ public:
 };
 
 template<class T>
-PairingHeap<T>::iterator::iterator(Node* _ptr) : ptr(_ptr) {}
+PairingHeap<T>::proxy::proxy(Node* _ptr) : ptr(_ptr) {}
 
 template<class T>
-const T& PairingHeap<T>::iterator::operator*() const
+const T& PairingHeap<T>::proxy::operator*() const
 {
     return ptr->value;
 }
 
 template<class T>
-const T* PairingHeap<T>::iterator::operator->() const
+const T* PairingHeap<T>::proxy::operator->() const
 {
     return &ptr->value;
 }
 
 template<class T>
-PairingHeap<T>::iterator::operator bool() const
+PairingHeap<T>::proxy::operator bool() const
 {
     return bool(ptr);
 }
@@ -180,12 +182,12 @@ void PairingHeap<T>::merge(PairingHeap<T>& other)
 }
 
 template<class T>
-auto PairingHeap<T>::insert(const T& _val) -> iterator
+auto PairingHeap<T>::insert(const T& _val) -> proxy
 {
     // простичко
     Node* res = new Node(_val);
     merge(PairingHeap(res, 1));
-    return iterator(res);
+    return proxy(res);
 }
 
 template<class T>
@@ -228,7 +230,7 @@ T PairingHeap<T>::extractMin()
 }
 
 template<class T>
-auto PairingHeap<T>::decreaseKey(iterator it, const T& newKey) -> iterator
+auto PairingHeap<T>::decreaseKey(proxy it, const T& newKey) -> proxy
 {
     // в случай на невалиден вход
     if (*it < newKey)
