@@ -42,10 +42,12 @@ public:
         friend bool operator!=(const proxy& lhs, const proxy& rhs) { return !(lhs == rhs); }
     };
 
-    // стандартна голяма четворка
+    // стандартна голяма шестица
     PairingHeap();
     PairingHeap(const PairingHeap&);
     PairingHeap& operator=(const PairingHeap&);
+    PairingHeap(PairingHeap&&);
+    PairingHeap& operator=(PairingHeap&&);
     ~PairingHeap();
     
     // ако имаме пирамидите x и y, то x.merge(y) ВИНАГИ оставя y празна (!),
@@ -149,6 +151,23 @@ PairingHeap<T>& PairingHeap<T>::operator=(const PairingHeap& other)
     {
         clear();
         copyFrom(other);
+    }
+    return *this;
+}
+
+template<class T>
+PairingHeap<T>::PairingHeap(PairingHeap&& other) : PairingHeap()
+{
+    swap(*this, other);
+}
+
+template<class T>
+PairingHeap<T>& PairingHeap<T>::operator=(PairingHeap&& other)
+{
+    if (this != &other)
+    {
+        clear();
+        swap(*this, other);
     }
     return *this;
 }
