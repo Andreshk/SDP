@@ -1,151 +1,129 @@
 #pragma once
 #include <vector>
-#include <cstddef>   // size_t
+#include <cstddef>   // std::size_t
 #include <algorithm> // std::swap
 
 template<class T>
-class PairingHeap
+class PH
 {
     struct Node
     {
         T value;
         Node* leftChild;
         Node* rightSibling;
-        Node* predecessor;
-        Node(const T& _val) : value(_val), leftChild(nullptr),
-            rightSibling(nullptr), predecessor(nullptr) {}
+        Node(const T& _val) : value(_val), leftChild(nullptr), rightSibling(nullptr) {}
     };
 
     Node* root;
-    size_t count;
 
-    // помощни функции за копиране/изтриване
-    static Node* copyNode(const Node*, Node*);
-    static void freeNode(const Node*);
-    void copyFrom(const PairingHeap&);
-
-    // Помощен конструктор, който конструира пирамида по нейния корен
-    // (получен напр. от някой наследник), но може да не знае размера й!
+    // Помощен конструктор, който конструира пирамида по нейния корен (получен напр. от някой наследник)
     // Използва се и за конструиране на пирамида с един възел (по дадена стойност)
-    explicit PairingHeap(Node*, size_t = 0);
+    PH(Node*);
+
+    void copyFrom(const PH&);           // използва се от копи-конструктора и оператор=
+    static Node* copyNode(const Node*); // използва се от copyFrom и извиква себе си рекурсивно
+    static void freeNode(const Node*);  // използва се от clear(), което се използва от деструктора
 public:
     class proxy
     {
-        friend class PairingHeap<T>;
+        friend class PH<T>;
         Node* ptr;
-        explicit proxy(Node*);
+
+        proxy(Node* _p) : ptr(_p) {}
     public:
-        const T& operator*() const;
-        const T* operator->() const;
-        operator bool() const;
-        friend bool operator==(const proxy& lhs, const proxy& rhs) { return lhs.ptr == rhs.ptr; }
-        friend bool operator!=(const proxy& lhs, const proxy& rhs) { return !(lhs == rhs); }
+        // през това "прокси", което е нищо повече от "внимателен" указател,
+        // ще достъпваме само стойността в съответния възел - и то без да я променяме!
+        const T& operator*() const
+        {
+            return ptr->value;
+        }
+        const T* operator->() const
+        {
+            return &ptr->value;
+        }
+        friend bool operator==(const proxy& lhs, const proxy& rhs)
+        {
+            return lhs.ptr == rhs.ptr;
+        }
+        friend bool operator!=(const proxy& lhs, const proxy& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
-    // стандартна голяма шестица
-    PairingHeap();
-    PairingHeap(const PairingHeap&);
-    PairingHeap& operator=(const PairingHeap&);
-    PairingHeap(PairingHeap&&);
-    PairingHeap& operator=(PairingHeap&&);
-    ~PairingHeap();
-    
-    // ако имаме пирамидите x и y, то x.merge(y) ВИНАГИ оставя y празна (!),
-    // независимо кой от корените е по-малкият; x после съдържа всички елементи на двете.
-    void merge(PairingHeap&);
+    // конструкторът по подразбиране е безинтересен
+    PH();
+    PH(const PH&);
+    PH& operator=(const PH&);
+    ~PH();
+
+    // ако имаме пирамидите x и y, то x.merge(y) ВИНАГИ оставя y празна (!)
+    // съобразете как да комбинирате този факт с проверката кой е по-малкият от двата корена
+    void merge(PH&);
 
     // вмъкване - създаваме нова пирамида с една стойност и сливаме с дадената
     proxy insert(const T&);
 
-    // класическа операция; взимаме стойността в корена (ако няма такъв - undefined behaviour)
+    // класическа операция; нищо специално
     const T& peek() const;
 
-    // най-тежката операция: премахваме корена, получаваме списък от всичките му деца
-    // и лека-полека ги сливаме до получаването на една остатъчна пирамида
+    // тук става интересно (!)
     T extractMin();
 
-    // специално (!)
-    proxy decreaseKey(proxy, const T&);
-
-    // отново стандартни методи
-    size_t size() const;
-    bool empty() const;
-    // clear() освобождава цялата памет, заета от пирамидата, и я връща във валидно празно състояние
-    void clear();
-
-    // бонус - удобна функцийка
-    friend void swap(PairingHeap& lhs, PairingHeap& rhs)
+    // разменяме съдържанието на две пирамиди
+    friend void swap(PH<T>& p1, PH<T>& p2)
     {
-        std::swap(lhs.root, rhs.root);
-        std::swap(lhs.count, rhs.count);
+        std::swap(p1.root, p2.root);
     }
+
+    // стандартни
+    bool empty() const;
+    void clear();
 };
 
 template<class T>
-PairingHeap<T>::proxy::proxy(Node* _ptr) : ptr(_ptr) {}
-
-template<class T>
-const T& PairingHeap<T>::proxy::operator*() const
+void PH<T>::copyFrom(const PH& other)
 {
-    return ptr->value;
+    // преди това със сигурност root==nullptr, .т.е. пирамидата е празна
+    root = copyNode(other.root);
 }
 
 template<class T>
-const T* PairingHeap<T>::proxy::operator->() const
+auto PH<T>::copyNode(const Node* location) -> Node*
 {
-    return &ptr->value;
-}
-
-template<class T>
-PairingHeap<T>::proxy::operator bool() const
-{
-    return bool(ptr);
-}
-
-template<class T>
-auto PairingHeap<T>::copyNode(const Node* ptr, Node* _pred) -> Node*
-{
-    if (!ptr)
+    if (!location)
         return nullptr;
-    Node* tmp = new Node(ptr->value);
-    tmp->leftChild = copyNode(ptr->leftChild, tmp);
-    tmp->rightSibling = copyNode(ptr->rightSibling, tmp);
-    tmp->predecessor = _pred;
-    return tmp;
+    Node* result = new Node(location->value);
+    result->leftChild = copyNode(location->leftChild);
+    result->rightSibling = copyNode(location->rightSibling);
+    return result;
 }
 
 template<class T>
-void PairingHeap<T>::freeNode(const Node* ptr)
+void PH<T>::freeNode(const Node* location)
 {
-    if (ptr)
-    {
-        freeNode(ptr->leftChild);
-        freeNode(ptr->rightSibling);
-        delete ptr;
-    }
+    if (!location)
+        return;
+    freeNode(location->leftChild);
+    freeNode(location->rightSibling);
+    delete location;
 }
 
 template<class T>
-void PairingHeap<T>::copyFrom(const PairingHeap& other)
-{
-    root = copyNode(other.root, nullptr);
-    count = other.count;
-}
+PH<T>::PH(Node* _ptr) : root(_ptr) {}
+
+// голямата четворка се имплементира по "шаблонен" (pun intended) начин
+template<class T>
+PH<T>::PH() : root(nullptr) {}
 
 template<class T>
-PairingHeap<T>::PairingHeap(Node* _root, size_t _count) : root(_root), count(_count) {}
-
-template<class T>
-PairingHeap<T>::PairingHeap() : PairingHeap(nullptr, 0) {}
-
-template<class T>
-PairingHeap<T>::PairingHeap(const PairingHeap& other)
+PH<T>::PH(const PH& other) : PH()
 {
     copyFrom(other);
 }
 
 template<class T>
-PairingHeap<T>& PairingHeap<T>::operator=(const PairingHeap& other)
+PH<T>& PH<T>::operator=(const PH& other)
 {
     if (this != &other)
     {
@@ -156,30 +134,29 @@ PairingHeap<T>& PairingHeap<T>::operator=(const PairingHeap& other)
 }
 
 template<class T>
-PairingHeap<T>::PairingHeap(PairingHeap&& other) : PairingHeap()
-{
-    swap(*this, other);
-}
-
-template<class T>
-PairingHeap<T>& PairingHeap<T>::operator=(PairingHeap&& other)
-{
-    if (this != &other)
-    {
-        clear();
-        swap(*this, other);
-    }
-    return *this;
-}
-
-template<class T>
-PairingHeap<T>::~PairingHeap()
+PH<T>::~PH()
 {
     clear();
 }
 
 template<class T>
-void PairingHeap<T>::merge(PairingHeap<T>& other)
+auto PH<T>::insert(const T& _val) -> proxy
+{
+    // създаваме нова кутийка и по нейния адрес конструираме
+    // не само новата пирамидка, ами и проксито, което връщаме
+    Node* location = new Node(_val);
+    merge(PH(location));
+    return proxy(location);
+}
+
+template<class T>
+const T& PH<T>::peek() const
+{
+    return root->value;
+}
+
+template<class T>
+void PH<T>::merge(PH& other)
 {
     if (this == &other || other.empty())
         return;
@@ -188,116 +165,62 @@ void PairingHeap<T>::merge(PairingHeap<T>& other)
         swap(*this, other);
         return;
     }
+    // с тази проверка си гарантираме, че винаги *this е с по-малък корен,
+    // т.е. other ще бъде "погълната" в *this.
     if (other.root->value < root->value)
         swap(*this, other);
     other.root->rightSibling = root->leftChild;
-    if (root->leftChild)                            //!
-        root->leftChild->predecessor = other.root;  //!
     root->leftChild = other.root;
-    root->leftChild->predecessor = root;            //!
-    count += other.count;
     other.root = nullptr;
-    other.count = 0;
 }
 
 template<class T>
-auto PairingHeap<T>::insert(const T& _val) -> proxy
+T PH<T>::extractMin()
 {
-    // простичко
-    Node* res = new Node(_val);
-    merge(PairingHeap(res, 1));
-    return proxy(res);
-}
-
-template<class T>
-const T& PairingHeap<T>::peek() const
-{
-    return root->value;
-}
-
-template<class T>
-T PairingHeap<T>::extractMin()
-{
-    // преди да освободим паметта за корена, взимаме неговите value и leftChild
+    // запази стойността в корена
     T result = peek();
+    // запази всички деца на корена
     Node* nextChild = root->leftChild;
-    delete root;
-    root = nullptr;
-    // за да не го изгубим по-нататък
-    size_t oldCount = count;
-    // масивът от децата на стария корен - също отделни пирамиди
-    std::vector<PairingHeap<T>> children;
-    // ако има деца, всички ги изолираме и добавяме във вектора
+    std::vector<PH> children;
     while (nextChild)
     {
-        Node* curr = nextChild;
-        nextChild = nextChild->rightSibling;
-        curr->rightSibling = curr->predecessor = nullptr;
-        children.push_back(PairingHeap(curr));
+        Node* tmp = nextChild->rightSibling;
+        // изолирай пирамидата с корен nextChild и я добави в масива
+        nextChild->rightSibling = nullptr;
+        children.push_back(PH(nextChild));
+        // премини към следвщаото дете
+        nextChild = tmp;
     }
-    // отново, ако има деца, всички ги сливаме към първото в масива
-    // и после бързо разменяме *this с получената пирамида.
+    // освободи паметта за корена
+    delete root;
+    root = nullptr;
+    // слей всичките деца - внимавайте дали въобще има такива !
     if (!children.empty())
     {
+        // за да променим метода на сливане, трябва да променим само този цикъл
         for (size_t i = 1; i < children.size(); i++)
             children[0].merge(children[i]);
+        // пренасочи корена към корена на тази получена пирамида
         swap(*this, children[0]);
     }
-    // намаляваме бройката (тя се губи при последния swap) и връщаме резултата
-    count = oldCount - 1;
+    // в този момент всички пирамиди в children са празни
+    // при излизане от фунцкията ще им се извикат деструкторите - няма да загубим данни
     return result;
 }
 
 template<class T>
-auto PairingHeap<T>::decreaseKey(proxy it, const T& newKey) -> proxy
-{
-    // в случай на невалиден вход
-    if (*it < newKey)
-        return it;
-    // актуализирай стойността
-    Node* location = it.ptr;
-    location->value = newKey;
-    // ако е корен (<=> няма ляв брат), не променяй нищо повече
-    if (root == location)
-        return it;
-    // съобщи на левия си брат, че има нов десен брат/наследник
-    if (location == location->predecessor->rightSibling)
-        location->predecessor->rightSibling = location->rightSibling;
-    else
-        location->predecessor->leftChild = location->rightSibling;
-    // съобщи и на десния си брат (ако има такъв), че вече не си му ти отляво
-    if (location->rightSibling)
-        location->rightSibling->predecessor = location->predecessor;
-    // изолирай върха да бъде корен на собствеа пирамида
-    location->rightSibling = location->predecessor = nullptr;
-    // построй пирамида по изолирания връх
-    PairingHeap tmp(location);
-    // запази стария размер на пирамидата
-    size_t oldCount = count;
-    // слей новата пирамида с текущата
-    merge(tmp);
-    // възстанови размера
-    count = oldCount;
-    // върни същия итератор (добри практики)
-    return it;
-}
-
-template<class T>
-size_t PairingHeap<T>::size() const
-{
-    return count;
-}
-
-template<class T>
-bool PairingHeap<T>::empty() const
+bool PH<T>::empty() const
 {
     return (root == nullptr);
 }
 
 template<class T>
-void PairingHeap<T>::clear()
+void PH<T>::clear()
 {
     freeNode(root);
     root = nullptr;
-    count = 0;
 }
+
+// за да си спестим писане по-горе, но все пак "потребителите" да ползват пълното име
+template<class T>
+using PairingHeap = PH<T>;
