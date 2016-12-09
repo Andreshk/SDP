@@ -145,7 +145,8 @@ auto PH<T>::insert(const T& _val) -> proxy
     // създаваме нова кутийка и по нейния адрес конструираме
     // не само новата пирамидка, ами и проксито, което връщаме
     Node* location = new Node(_val);
-    merge(PH(location));
+    PH tmp(location);
+    merge(tmp);
     return proxy(location);
 }
 
