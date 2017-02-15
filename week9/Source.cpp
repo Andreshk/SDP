@@ -5,7 +5,7 @@ template<class T>
 void heapTest(std::vector<T> values)
 {
     PairingHeap<T> ph;
-    std::vector<PairingHeap<T>::proxy> pxs;
+    std::vector<typename PairingHeap<T>::proxy> pxs;
 
     // не просто добавяме елементите в пирамидата,
     // ами и запазваме "проксита" към всеки един от тях
@@ -15,13 +15,13 @@ void heapTest(std::vector<T> values)
     // очакваме независимо от структурата на пирамидата
     // стойностите в прокситата да са в същия ред, в който сме ги добавили
     std::cout << "Proxies: ";
-    for (const PairingHeap<T>::proxy& p : pxs)
+    for (const typename PairingHeap<T>::proxy& p : pxs)
         std::cout << *p << " ";
     std::cout << "\n Values: ";
     for (const T& x : values)
         std::cout << x << " ";
     std::cout << "\n";
-    
+
     // да си тестваме копиконструктора
     PairingHeap<T> ph2 = ph;
     ph.clear();
@@ -29,7 +29,7 @@ void heapTest(std::vector<T> values)
     values.clear();
     while (!ph2.empty())
         values.push_back(ph2.extractMin());
-    
+
     std::cout << " Sorted: ";
     for (const T& x : values)
         std::cout << x << " ";
